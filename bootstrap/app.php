@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\ReleaseExpiredHolds;
+use App\Jobs\RetryPendingWebhooks;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -10,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new ReleaseExpiredHolds())
             ->everyMinute()
+            ->withoutOverlapping();
+
+        $schedule->job(new RetryPendingWebhooks())
+            ->everyThirtySeconds()
             ->withoutOverlapping();
     })
     ->withRouting(

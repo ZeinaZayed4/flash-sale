@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('payment_webhooks', function (Blueprint $table) {
             $table->id();
             $table->string('idempotency_key')->unique();
-            $table->foreignId('order_id')->constrained('orders')->cascadeOnDelete();
+            $table->foreignId('order_id')->nullable()->constrained('orders')->cascadeOnDelete();
             $table->enum('status', ['success', 'failure']);
             $table->json('payload')->nullable();
             $table->boolean('processed')->default(false);
