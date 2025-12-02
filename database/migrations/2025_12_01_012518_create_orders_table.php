@@ -16,7 +16,7 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->foreignId('hold_id')->constrained('holds')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->unsignedTinyInteger('quantity');
+            $table->unsignedInteger('quantity');
             $table->decimal('total_price', 10, 2);
             $table->enum('status', ['pending', 'paid', 'cancelled'])->default('pending');
             $table->timestamps();

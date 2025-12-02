@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('holds', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->unsignedTinyInteger('quantity');
+            $table->unsignedInteger('quantity');
             $table->timestamp('expires_at')->nullable();
             $table->boolean('is_consumed')->default(false);
             $table->timestamps();

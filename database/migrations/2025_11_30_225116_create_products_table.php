@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->decimal('price', 10, 2);
-            $table->unsignedTinyInteger('total_stock');
-            $table->unsignedTinyInteger('available_stock');
+            $table->unsignedInteger('total_stock');
+            $table->unsignedInteger('available_stock');
             $table->timestamps();
 
             $table->index('available_stock');
