@@ -7,53 +7,104 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# Flash Sale Checkout System
+A Laravel-based API for handling flash sales with high concurrency,
+preventing overselling through pessimistic locking, temporary holds with expiry, and idempotent payment webhooks.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
+- No overselling under concurrent requests.
+- 2-minute temporary stock reservations.
+- Idempotent payment webhooks.
+- Automatic stock release on expiry/failure.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Quick Start
+1. **Install**
+   ```
+   git clone https://github.com/ZeinaZayed4/flash-sale
+   cd flash-sale
+   composer install
+   cp .env.example .env
+   ```
+2. **Configure Database**
+   - Edit `.env`:
+      ```
+      DB_DATABASE=flash_sale
+      DB_USERNAME=root
+      DB_PASSWORD=your_password
+        
+      CACHE_DRIVER=database
+      QUEUE_CONNECTION=database
+      ```
+3. **Setup Database**
+    ```
+   php artisan key:generate
+   php artisan migrate:fresh --seed
+   ```
+4. **Run**
+    - Open 3 terminals:
+        ```
+        php artisan serve
+      
+        php artisan schedule:work
+      
+        php artisan queue:work
+        ```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## API Usage
+- **Get Product**
+  ```
+  GET /api/products/1
+  ```
+- **Create Hold(2-minute reservation)**
+  ```
+  POST /api/holds
+  {
+    "product_id": 1,
+    "quantity": 5
+  }
+  ```
+- **Create Order**
+  ```
+  POST /api/orders
+  {
+    "hold_id": 1
+  }
+  ```
+- **Payment Webhook**
+  ```
+  POST /api/payments/webhook
+  {
+    "idempotency_key": "payment_1234",
+    "order_id": 1,
+    "status": "success"
+  }
+  ```
 
-## Learning Laravel
+## Testing
+```
+# Run all tests
+./vendor/bin/pest
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+# Run specific test file
+./vendor/bin/pest tests/Feature/ProductTest.php
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# With coverage
+./vendor/bin/pest --coverage
+```
 
-## Laravel Sponsors
+## How It Works
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Stock Management
+- **Pessimistic Locking**: `lockForUpdate()` prevents race conditions.
+- **Two Stock Columns**: `total_stock` (never changes) and `available_stock` (decrements with holds).
+- **Cache**: 5-second TTL for fast reads, invalidated on changes
 
-### Premium Partners
+### Hold System
+- Holds expire after 2 minutes.
+- Background job releases expired holds every minute.
+- Each hold can only be used once (`is_consumed` flag).
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Payment Webhooks
+- **Idempotency**: Unique database constraint on `idempotency_key`.
+- **Out-of-order safe**: Webhooks can arrive before order creation.
+- **Retry logic**: Pending webhooks retried every 30 seconds.
